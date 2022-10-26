@@ -232,8 +232,16 @@ public class DynamoDBMetadataHandler
     {
         if (glueClient != null) {
             try {
-                // does not validate that the table is actually a DDB table
-                return super.doGetTable(allocator, request);
+                // Change the table name to match the Glue table name
+                GetTableRequest glueRequest = new GetTableRequest(request.getIdentity(), request.getQueryId(),
+                        request.getCatalogName(), new TableName(request.getTableName().getSchemaName(), request.getTableName().getTableName().replace("-", "_")));
+                
+                // Change the returned Glue table name to match the DynamoDB table name
+                GetTableResponse glueResponse = super.doGetTable(allocator, glueRequest);
+
+                if (glueResponse != null) {
+                    return new GetTableResponse(request.getCatalogName(), new TableName(request.getTableName().getSchemaName(), request.getTableName().getTableName().replace("_", "-")), glueResponse.getSchema());
+                }
             }
             catch (RuntimeException e) {
                 logger.warn("doGetTable: Unable to retrieve table {} from AWSGlue in database/schema {}. " +
